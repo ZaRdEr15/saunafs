@@ -1,0 +1,25 @@
+From dde09bc1ebe18251362f56ff427e52e75799da8a Mon Sep 17 00:00:00 2001
+From: Anton Jastsuk <anton@leil.io>
+Date: Tue, 17 Mar 2026 11:34:05 +0200
+Subject: [PATCH] build: Fix build failure due to missing mutex include
+
+Signed-off-by: Anton Jastsuk <anton@leil.io>
+---
+ src/mount/tweaks.h | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/src/mount/tweaks.h b/src/mount/tweaks.h
+index fb34cc8b..8f3b0f0b 100644
+--- a/src/mount/tweaks.h
++++ b/src/mount/tweaks.h
+@@ -23,6 +23,7 @@
+ 
+ #include <atomic>
+ #include <memory>
++#include <mutex>
+ #include <string>
+ 
+ /**
+-- 
+2.53.0
+

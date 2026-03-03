@@ -1,0 +1,44 @@
+From 0b11a9df738624e1ab504d8375c99e47545bf029 Mon Sep 17 00:00:00 2001
+From: Anton Jastsuk <anton@leil.io>
+Date: Wed, 11 Mar 2026 15:55:22 +0200
+Subject: [PATCH 2/2] build: Make Timer::now() static to fix compiler warnings
+
+Convert Timer::now() from a const member function
+to a static method to get rid of the 'maybe used uninitialized'
+warning during compilation.
+
+Signed-off-by: Anton Jastsuk <anton@leil.io>
+---
+ src/common/time_utils.cc | 2 +-
+ src/common/time_utils.h  | 2 +-
+ 2 files changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/src/common/time_utils.cc b/src/common/time_utils.cc
+index 6059d701..dfc3e89d 100644
+--- a/src/common/time_utils.cc
++++ b/src/common/time_utils.cc
+@@ -52,7 +52,7 @@ Timer::Timer() : startTime_(now()) {
+ 	static_assert(SteadyClock::is_steady, "Monotonic clock is required");
+ }
+ 
+-SteadyTimePoint Timer::now() const {
++SteadyTimePoint Timer::now() {
+ 	return SteadyClock::now();
+ }
+ 
+diff --git a/src/common/time_utils.h b/src/common/time_utils.h
+index a4fcc2af..33207185 100644
+--- a/src/common/time_utils.h
++++ b/src/common/time_utils.h
+@@ -78,7 +78,7 @@ public:
+ 	int64_t lap_s();
+ 
+ private:
+-	SteadyTimePoint now() const;
++	static SteadyTimePoint now();
+ 	SteadyTimePoint startTime_;
+ };
+ 
+-- 
+2.53.0
+

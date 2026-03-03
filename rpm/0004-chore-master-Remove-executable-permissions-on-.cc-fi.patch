@@ -1,0 +1,27 @@
+From 196613928a47d34421919acb22f14bf6743b4454 Mon Sep 17 00:00:00 2001
+From: Anton Jastsuk <anton@leil.io>
+Date: Tue, 17 Mar 2026 12:24:15 +0200
+Subject: [PATCH] chore(master): Remove executable permissions on .cc files
+
+Signed-off-by: Anton Jastsuk <anton@leil.io>
+---
+ src/master/filesystem_node.cc       | 0
+ src/master/filesystem_operations.cc | 0
+ src/master/filesystem_stats.cc      | 0
+ 3 files changed, 0 insertions(+), 0 deletions(-)
+ mode change 100755 => 100644 src/master/filesystem_node.cc
+ mode change 100755 => 100644 src/master/filesystem_operations.cc
+ mode change 100755 => 100644 src/master/filesystem_stats.cc
+
+diff --git a/src/master/filesystem_node.cc b/src/master/filesystem_node.cc
+old mode 100755
+new mode 100644
+diff --git a/src/master/filesystem_operations.cc b/src/master/filesystem_operations.cc
+old mode 100755
+new mode 100644
+diff --git a/src/master/filesystem_stats.cc b/src/master/filesystem_stats.cc
+old mode 100755
+new mode 100644
+-- 
+2.53.0
+

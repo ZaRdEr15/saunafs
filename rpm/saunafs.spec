@@ -1,151 +1,181 @@
-%define distro @DISTRO@
-
-Summary:        SaunaFS - distributed, fault tolerant file system
 Name:           saunafs
-Version:        3.13.0
-Release:        0%{?distro}
-License:        GPL v3
-Group:          System Environment/Daemons
-URL:            http://www.saunafs.org/
-Source:         saunafs-%{version}.tar.gz
-BuildRequires:  fuse-devel
-BuildRequires:  cmake
-BuildRequires:  pkgconfig
-BuildRequires:  zlib-devel
-BuildRequires:  asciidoc
-BuildRequires:  systemd
-BuildRoot:      %{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
+Summary:        Distributed, fault tolerant POSIX file system
+Version:        5.8.0
+Release:        %autorelease
 
-%define         sau_project        saunafs
-%define         sau_group          %{sau_project}
-%define         sau_user           %{sau_project}
-%define         sau_datadir        %{_localstatedir}/lib/%{sau_project}
-%define         sau_confdir        %{_sysconfdir}/%{sau_project}
-%define         sau_limits_conf    /etc/security/limits.d/10-saunafs.conf
-%define         sau_pam_d          /etc/pam.d/saunafs
-%define         _unpackaged_files_terminate_build 0
-%define         debug_package      %{nil}
+# Most of the software is licensed under GPL-3.0, except:
+# `cmake/FindSocket.cmake`, which is licensed GPL-3.0+;
+# `utils/wireshark/plugins/epan/saunafs/CMakeLists.txt`, which is licensed GPL-2.0+;
+# `tests/llvm.sh` which is licensed Apache-2.0 WITH LLVM-exception;
+# `src/nfs-ganesha/*`, which is licensed LGPL-3.0+;
+# `src/nfs-ganesha/CMakeLists.txt`, which is licensed GPL-3.0;
+# `external/crcutil-1.0/*`, which is licensed Apache-2.0;
+# `utils/ping_pong.cc`, which is licensed GPL-3.0+;
+# `src/common/galois_field_isal.cc`, which is licensed BSD-3-Clause~Intel;
+# `src/common/coroutine.h`, which is Boost license.
+License:        GPL-3.0-only AND GPL-3.0-or-later AND GPL-2.0-or-later AND Apache-2.0 WITH LLVM-exception AND LGPL-3.0-or-later AND Apache-2.0 AND BSD-3-Clause AND BSL-1.0
+
+URL:            https://github.com/leil-io/saunafs
+Source0:        https://github.com/leil-io/%{name}/archive/refs/tags/v%{version}.tar.gz
+Source1:        10-saunafs-uraft-arp.conf
+Source2:        saunafs-uraft.sudoers
+Source3:        10-saunafs.conf
+Source4:        saunafs.conf
+
+# If approved in pull request then no longer needed
+Patch0:         0001-build-Fix-build-failure-with-GCC-15-due-to-missing-c.patch
+Patch1:         0002-build-Make-Timer-now-static-to-fix-compiler-warnings.patch
+Patch2:         0003-build-Fix-build-failure-due-to-missing-mutex-include.patch
+Patch3:         0004-chore-master-Remove-executable-permissions-on-.cc-fi.patch
+
+BuildRequires:  asciidoc
+BuildRequires:  cmake
+BuildRequires:  gcc
+BuildRequires:  gcc-c++
+BuildRequires:  make
+BuildRequires:  pkgconfig
+BuildRequires:  rubygem-asciidoctor
+BuildRequires:  systemd
+BuildRequires:  systemd-rpm-macros
+
+BuildRequires:  boost-devel
+BuildRequires:  fmt-devel
+BuildRequires:  fuse3-devel
+BuildRequires:  isa-l-devel
+BuildRequires:  Judy-devel
+BuildRequires:  libdb-devel
+BuildRequires:  openssl-devel
+BuildRequires:  pam-devel
+BuildRequires:  spdlog-devel
+BuildRequires:  systemd-devel
+BuildRequires:  thrift-devel
+BuildRequires:  yaml-cpp-devel
+BuildRequires:  zlib-devel
+
+%global         sau_project        saunafs
+%global         sau_group          %{sau_project}
+%global         sau_user           %{sau_project}
+%global         sau_datadir        %{_localstatedir}/lib/%{sau_project}
+%global         sau_confdir        %{_sysconfdir}/%{sau_project}
+%global         sau_limits_conf    10-saunafs.conf
 
 %description
 SaunaFS is an Open Source, easy to deploy and maintain, distributed,
 fault tolerant file system for POSIX compliant OSes.
 http://saunafs.com
 
-# Packages
+# Package - master
 ############################################################
 
 %package master
 Summary:        SaunaFS master server
-Group:          System Environment/Daemons
-Requires(post): systemd-units
-Requires(preun): systemd-units
-Requires(postun): systemd-units
+Requires:       user(saunafs)
+Requires:       group(saunafs)
+%{?systemd_requires}
 
 %description master
 SaunaFS master (metadata) server together with metarestore utility.
 
+# Package - metalogger
+############################################################
+
 %package metalogger
 Summary:        SaunaFS metalogger server
-Group:          System Environment/Daemons
-Requires(post): systemd-units
-Requires(preun): systemd-units
-Requires(postun): systemd-units
+Requires:       user(saunafs)
+Requires:       group(saunafs)
+%{?systemd_requires}
 
 %description metalogger
 SaunaFS metalogger (metadata replication) server.
 
+# Package - chunkserver
+############################################################
+
 %package chunkserver
 Summary:        SaunaFS data server
-Group:          System Environment/Daemons
-Requires(post): systemd-units
-Requires(preun): systemd-units
-Requires(postun): systemd-units
+Requires:       user(saunafs)
+Requires:       group(saunafs)
+%{?systemd_requires}
 
 %description chunkserver
 SaunaFS data server.
 
+# Package - client
+############################################################
+
 %package client
 Summary:        SaunaFS client
-Group:          System Environment/Daemons
-Requires:       fuse
-Requires:       fuse-libs
+Requires:       fuse3
 Requires:       bash-completion
 
 %description client
 SaunaFS client: sfsmount and sfstools.
 
-%package lib-client
-Summary:        SaunaFS client C/C++ library
-Group:          Development/Libraries
+# Package - SaunaFS client development files
+############################################################
 
-%description lib-client
-SaunaFS client library for C/C++ bindings.
+%package client-devel
+Summary:        Development files for SaunaFS client C/C++
 
-### Uncomment lines below to re-enable ganesha build.
-# %package nfs-ganesha
-# Summary:        SaunaFS plugin for nfs-ganesha
-# Group:          System Environment/Libraries
-# Requires:       saunafs-lib-client
-#
-# %description nfs-ganesha
-# SaunaFS fsal plugin for nfs-ganesha.
+%description client-devel
+SaunaFS development headers and static libraries for C/C++ bindings.
+
+# Package - CGI
+############################################################
 
 %package cgi
 Summary:        SaunaFS CGI Monitor
-Group:          System Environment/Daemons
+BuildArch:      noarch
 Requires:       python3
 
 %description cgi
 SaunaFS CGI Monitor.
 
+# Package - CGI server
+############################################################
+
 %package cgiserv
 Summary:        Simple CGI-capable HTTP server to run SaunaFS CGI Monitor
-Group:          System Environment/Daemons
+BuildArch:      noarch
 Requires:       %{name}-cgi = %{version}-%{release}
-Requires(post): systemd-units
-Requires(preun): systemd-units
-Requires(postun): systemd-units
+%{?systemd_requires}
 
 %description cgiserv
 Simple CGI-capable HTTP server to run SaunaFS CGI Monitor.
 
+# Package - Administration utility
+############################################################
+
 %package adm
 Summary:        SaunaFS administration utility
-Group:          System Environment/Daemons
 
 %description adm
 SaunaFS command line administration utility.
 
+# Package - uraft
+############################################################
+
 %package uraft
 Summary:        SaunaFS cluster management tool
-Group:          System Environment/Daemons
-Requires:       saunafs-master
-Requires:       saunafs-adm
-Requires:       boost-system
-Requires:       boost-program-options
+Requires:       %{name}-master = %{version}-%{release}
+Requires:       %{name}-adm = %{version}-%{release}
+Requires:       iproute
 
 %description uraft
 SaunaFS cluster management tool.
 
-# Scriptlets - master
+# Package - user
 ############################################################
 
-%pre master
-if ! getent group %{sau_group} > /dev/null 2>&1 ; then
-	groupadd --system %{sau_group}
-fi
-if ! getent passwd %{sau_user} > /dev/null 2>&1 ; then
-	adduser --system -g %{sau_group} --no-create-home --home-dir %{sau_datadir} %{sau_user}
-fi
-if [ ! -f %{sau_limits_conf} ]; then
-	echo "%{sau_user} soft nofile 131072" > %{sau_limits_conf}
-	echo "%{sau_user} hard nofile 131072" >> %{sau_limits_conf}
-	chmod 0644 %{sau_limits_conf}
-fi
-if [ ! -f %{sau_pam_d} ]; then
-	echo "session	required	pam_limits.so" > %{sau_pam_d}
-fi
-exit 0
+%package user
+Summary:        SaunaFS common user/group
+%{?sysusers_requires_compat}
+
+%description user
+SaunaFS common user/group.
+
+# Scriptlets - master
+############################################################
 
 %post master
 %systemd_post saunafs-master.service
@@ -159,15 +189,6 @@ exit 0
 # Scriptlets - metalogger
 ############################################################
 
-%pre metalogger
-if ! getent group %{sau_group} > /dev/null 2>&1 ; then
-	groupadd --system %{sau_group}
-fi
-if ! getent passwd %{sau_user} > /dev/null 2>&1 ; then
-	adduser --system -g %{sau_group} --no-create-home --home-dir %{sau_datadir} %{sau_user}
-fi
-exit 0
-
 %post metalogger
 %systemd_post saunafs-metalogger.service
 
@@ -179,23 +200,6 @@ exit 0
 
 # Scriptlets - chunkserver
 ############################################################
-
-%pre chunkserver
-if ! getent group %{sau_group} > /dev/null 2>&1 ; then
-	groupadd --system %{sau_group}
-fi
-if ! getent passwd %{sau_user} > /dev/null 2>&1 ; then
-	adduser --system -g %{sau_group} --no-create-home --home-dir %{sau_datadir} %{sau_user}
-fi
-if [ ! -f %{sau_limits_conf} ]; then
-	echo "%{sau_user} soft nofile 131072" > %{sau_limits_conf}
-	echo "%{sau_user} hard nofile 131072" >> %{sau_limits_conf}
-	chmod 0644 %{sau_limits_conf}
-fi
-if [ ! -f %{sau_pam_d} ]; then
-	echo "session	required	pam_limits.so" > %{sau_pam_d}
-fi
-exit 0
 
 %post chunkserver
 %systemd_post saunafs-chunkserver.service
@@ -222,46 +226,109 @@ exit 0
 ############################################################
 
 %post uraft
-echo "net.ipv4.conf.all.arp_accept = 1" > /etc/sysctl.d/10-saunafs-uraft-arp.conf
-chmod 0664 /etc/sysctl.d/10-saunafs-uraft-arp.conf
-sysctl -p /etc/sysctl.d/10-saunafs-uraft-arp.conf
-echo "# Allow saunafs user to set floating ip" > /etc/sudoers.d/saunafs-uraft
-echo "saunafs    ALL=NOPASSWD:/sbin/ip" >> /etc/sudoers.d/saunafs-uraft
-echo 'Defaults !requiretty' >> /etc/sudoers
+%systemd_post saunafs-uraft.service saunafs-ha-master.service
 
-# Prep, build, install, files...
+%preun uraft
+%systemd_preun saunafs-uraft.service saunafs-ha-master.service
+
+%postun uraft
+%systemd_postun_with_restart saunafs-uraft.service saunafs-ha-master.service
+
+# Scriptlets - user
+############################################################
+
+%pre user
+%sysusers_create_compat %{SOURCE4}
+
+# Prep
 ############################################################
 
 %prep
-%setup
+%autosetup -p1
 
-%build
-./configure --with-doc
-make %{?_smp_mflags}
-
-%install
-rm -rf $RPM_BUILD_ROOT
-make install DESTDIR=$RPM_BUILD_ROOT
-install -d -m755 $RPM_BUILD_ROOT/%{sau_confdir}
-install -d -m755 $RPM_BUILD_ROOT/%{_unitdir}
-for f in rpm/service-files/*.service ; do
-	install -m644 "$f" $RPM_BUILD_ROOT/%{_unitdir}/$(basename "$f")
+# Remove /usr/bin/env from bash scripts
+find . -type f -name "*.sh" -exec sed -i 's@#!/usr/bin/env bash@#!/bin/bash@' {} +
+for i in src/data/postinst.in \
+         src/master/sfsrestoremaster.in \
+         src/unittests/unittests.in tests/ci_build/docker_entrypoint.test; do
+    sed -i 's@#!/usr/bin/env bash@#!/bin/bash@' $i
 done
 
-%clean
-rm -rf $RPM_BUILD_ROOT
+# Remove /usr/bin/env from python3 scripts
+for i in src/cgi/chart.cgi.in \
+         src/cgi/saunafs-cgiserver.py.in \
+         src/cgi/sfs.cgi.in tests/data/extract_tests_durations.py \
+         tests/test_utils/sqlite_stress_test.py \
+         utils/wireshark/plugins/epan/saunafs/make_dissector.py; do
+    sed -i 's@#!/usr/bin/env python3@#!/usr/bin/python3@' $i
+done
+
+# Build
+############################################################
+
+%build
+%cmake \
+    -DCMAKE_BUILD_TYPE=Release \
+    -DBUILD_SHARED_LIBS=OFF \
+    -DENABLE_CLIENT_LIB=ON \
+    -DENABLE_COMPILE_COMMANDS=OFF \
+    -DENABLE_PROMETHEUS=OFF \
+    -DASCIIDOCTOR_AUTO_SETUP=OFF \
+    -DGENERATE_GIT_INFO=OFF
+
+%cmake_build
+
+# Install
+############################################################
+
+%install
+%cmake_install
+
+mkdir -p %{buildroot}%{_datadir}/bash-completion/completions/
+
+mv %{buildroot}%{_prefix}/etc/bash_completion.d/saunafs \
+   %{buildroot}%{_datadir}/bash-completion/completions/saunafs
+
+rmdir %{buildroot}%{_prefix}/etc/bash_completion.d/ || :
+rmdir %{buildroot}%{_prefix}/etc/ || :
+
+install -p -m 0644 -D %{SOURCE1} %{buildroot}%{_sysconfdir}/sysctl.d/10-saunafs-uraft-arp.conf
+
+install -p -m 0440 -D %{SOURCE2} %{buildroot}%{_sysconfdir}/sudoers.d/saunafs-uraft
+
+install -p -d -m 0755 %{buildroot}%{_unitdir}
+for f in rpm/service-files/*.service ; do
+    # Remove this when saunafs-uraft.saunafs-ha-master.service is no longer in service-files
+    if [ "$(basename "$f")" = "saunafs-uraft.saunafs-ha-master.service" ]; then
+        continue
+    fi
+    install -p -m 0644 "$f" %{buildroot}%{_unitdir}/
+done
+
+install -p -m 0644 -D %{SOURCE3} %{buildroot}%{_sysconfdir}/security/limits.d/%{sau_limits_conf}
+ 
+install -p -m 0644 -D %{SOURCE4} %{buildroot}%{_sysusersdir}/saunafs.conf
+
+mkdir -p %{buildroot}%{sau_confdir}
+
+# Not used anywhere, can be removed
+rm %{buildroot}%{_libdir}/libsaunafs-client.so
+rm %{buildroot}%{_libdir}/libsaunafsmount_shared.so
+
+# Files - master
+############################################################
 
 %files master
-%define sau_master_examples %{_docdir}/saunafs-master/examples
-%defattr(644,root,root,755)
-%doc NEWS README.md UPGRADE
-%attr(755,root,root) %{_sbindir}/sfsmaster
-%attr(755,root,root) %{_sbindir}/sfsrestoremaster
-%attr(755,root,root) %{_sbindir}/sfsmetadump
-%attr(755,root,root) %{_sbindir}/sfsmetarestore
+%license COPYING
+%doc NEWS README.md
+%{_sbindir}/sfsmaster
+%{_sbindir}/sfsrestoremaster
+%{_sbindir}/sfsmetadump
+%{_sbindir}/sfsmetarestore
+%{_unitdir}/saunafs-master.service
 %dir %{sau_confdir}
-%attr(755,%{sau_user},%{sau_group}) %dir %{sau_confdir}
-%attr(755,%{sau_user},%{sau_group}) %dir %{sau_datadir}
+%attr(-,%{sau_user},%{sau_group}) %dir %{sau_datadir}
+%attr(-,%{sau_user},%{sau_group}) %{sau_datadir}/metadata.sfs.empty
 %{_mandir}/man5/sfsexports.cfg.5*
 %{_mandir}/man5/sfstopology.cfg.5*
 %{_mandir}/man5/sfsgoals.cfg.5*
@@ -273,46 +340,58 @@ rm -rf $RPM_BUILD_ROOT
 %{_mandir}/man8/sfsmetadump.8*
 %{_mandir}/man8/sfsmetarestore.8*
 %{_mandir}/man8/sfsrestoremaster.8*
-%{sau_master_examples}/sfsexports.cfg
-%{sau_master_examples}/sfstopology.cfg
-%{sau_master_examples}/sfsgoals.cfg
-%{sau_master_examples}/sfsmaster.cfg
-%{sau_master_examples}/sfsglobaliolimits.cfg
-%attr(644,root,root) %{sau_datadir}/metadata.sfs.empty
-%attr(644,root,root) %{_unitdir}/saunafs-master.service
+%dir %{_docdir}/saunafs-master/examples/
+%{_docdir}/saunafs-master/examples/sfsexports.cfg
+%{_docdir}/saunafs-master/examples/sfstopology.cfg
+%{_docdir}/saunafs-master/examples/sfsgoals.cfg
+%{_docdir}/saunafs-master/examples/sfsmaster.cfg
+%{_docdir}/saunafs-master/examples/sfsglobaliolimits.cfg
+%config(noreplace) %{_sysconfdir}/pam.d/saunafs
+%config(noreplace) %{_sysconfdir}/security/limits.d/%{sau_limits_conf}
+
+# Files - metalogger
+############################################################
 
 %files metalogger
-%define sau_metalogger_examples %{_docdir}/saunafs-metalogger/examples
-%defattr(644,root,root,755)
-%doc NEWS README.md UPGRADE
-%attr(755,root,root) %{_sbindir}/sfsmetalogger
-%attr(755,%{sau_user},%{sau_group}) %dir %{sau_datadir}
+%license COPYING
+%doc NEWS README.md
+%{_sbindir}/sfsmetalogger
+%{_unitdir}/saunafs-metalogger.service
+%dir %{sau_confdir}
+%attr(-,%{sau_user},%{sau_group}) %dir %{sau_datadir}
 %{_mandir}/man5/sfsmetalogger.cfg.5*
 %{_mandir}/man8/sfsmetalogger.8*
-%{sau_metalogger_examples}/sfsmetalogger.cfg
-%attr(644,root,root) %{_unitdir}/saunafs-metalogger.service
+%dir %{_docdir}/saunafs-metalogger/examples/
+%{_docdir}/saunafs-metalogger/examples/sfsmetalogger.cfg
+
+# Files - chunkserver
+############################################################
 
 %files chunkserver
-%define sau_chunkserver_examples %{_docdir}/saunafs-chunkserver/examples
-%defattr(644,root,root,755)
-%doc NEWS README.md UPGRADE
-%attr(755,root,root) %{_sbindir}/sfschunkserver
+%license COPYING
+%doc NEWS README.md
+%{_sbindir}/sfschunkserver
+%{_unitdir}/saunafs-chunkserver.service
 %dir %{sau_confdir}
-%attr(755,%{sau_user},%{sau_group}) %dir %{sau_confdir}
-%attr(755,%{sau_user},%{sau_group}) %dir %{sau_datadir}
+%attr(-,%{sau_user},%{sau_group}) %dir %{sau_datadir}
 %{_mandir}/man5/sfschunkserver.cfg.5*
 %{_mandir}/man5/sfshdd.cfg.5*
 %{_mandir}/man8/sfschunkserver.8*
-%{sau_chunkserver_examples}/sfschunkserver.cfg
-%{sau_chunkserver_examples}/sfshdd.cfg
-%attr(644,root,root) %{_unitdir}/saunafs-chunkserver.service
+%dir %{_docdir}/saunafs-chunkserver/examples/
+%{_docdir}/saunafs-chunkserver/examples/sfschunkserver.cfg
+%{_docdir}/saunafs-chunkserver/examples/sfshdd.cfg
+%config(noreplace) %{_sysconfdir}/pam.d/saunafs
+%config(noreplace) %{_sysconfdir}/security/limits.d/%{sau_limits_conf}
+
+# Files - client
+############################################################
 
 %files client
-%define sau_client_examples %{_docdir}/saunafs-client/examples
-%defattr(644,root,root,755)
-%doc NEWS README.md UPGRADE
-%attr(755,root,root) %{_bindir}/saunafs
-%attr(755,root,root) %{_bindir}/sfsmount
+%license COPYING
+%doc NEWS README.md
+%{_bindir}/saunafs
+%{_bindir}/sfsmount
+%dir %{sau_confdir}
 %{_mandir}/man1/saunafs-appendchunks.1*
 %{_mandir}/man1/saunafs-checkfile.1*
 %{_mandir}/man1/saunafs-deleattr.1*
@@ -324,27 +403,29 @@ rm -rf $RPM_BUILD_ROOT
 %{_mandir}/man1/saunafs-gettrashtime.1*
 %{_mandir}/man1/saunafs-makesnapshot.1*
 %{_mandir}/man1/saunafs-repquota.1*
-%{_mandir}/man1/saunafs-rgetgoal.1*
-%{_mandir}/man1/saunafs-rgettrashtime.1*
-%{_mandir}/man1/saunafs-rsetgoal.1*
-%{_mandir}/man1/saunafs-rsettrashtime.1*
 %{_mandir}/man1/saunafs-seteattr.1*
 %{_mandir}/man1/saunafs-setgoal.1*
 %{_mandir}/man1/saunafs-setquota.1*
 %{_mandir}/man1/saunafs-settrashtime.1*
 %{_mandir}/man1/saunafs-rremove.1*
 %{_mandir}/man1/saunafs.1*
-%{_mandir}/man5/sfsiolimits.cfg.5*
-%{_mandir}/man7/sfs.7*
 %{_mandir}/man1/sfsmount.1*
+%{_mandir}/man5/sfsiolimits.cfg.5*
 %{_mandir}/man5/sfsmount.cfg.5*
-%{sau_client_examples}/sfsiolimits.cfg
-%{sau_client_examples}/sfsmount.cfg
-%{_sysconfdir}/bash_completion.d/saunafs
+%{_mandir}/man7/sfs.7*
+%{_mandir}/man7/saunafs-migrations.7*
+%dir %{_docdir}/saunafs-client/examples/
+%{_docdir}/saunafs-client/examples/sfstls.cfg
+%{_docdir}/saunafs-client/examples/sfsiolimits.cfg
+%{_docdir}/saunafs-client/examples/sfsmount.cfg
+%{_datadir}/bash-completion/completions/saunafs
 
-%files lib-client
-%{_libdir}/libsaunafsmount_shared.so
-%{_libdir}/libsaunafs-client.so
+# Files - client-devel
+############################################################
+
+%files client-devel
+%doc NEWS README.md
+%license COPYING
 %{_libdir}/libsaunafs-client-cpp.a
 %{_libdir}/libsaunafs-client-cpp_pic.a
 %{_libdir}/libsaunafs-client.a
@@ -352,13 +433,12 @@ rm -rf $RPM_BUILD_ROOT
 %{_includedir}/saunafs/saunafs_c_api.h
 %{_includedir}/saunafs/saunafs_error_codes.h
 
-### Uncomment lines below to re-enable ganesha build.
-# %files nfs-ganesha
-# %{_libdir}/ganesha/libfsalsaunafs.so
+# Files - CGI
+############################################################
 
 %files cgi
-%defattr(644,root,root,755)
-%doc NEWS README.md UPGRADE
+%license COPYING
+%doc NEWS README.md
 %dir %{_datadir}/sfscgi
 %{_datadir}/sfscgi/err.gif
 %{_datadir}/sfscgi/favicon.ico
@@ -367,34 +447,55 @@ rm -rf $RPM_BUILD_ROOT
 %{_datadir}/sfscgi/logomini.svg
 %{_datadir}/sfscgi/logomini.png
 %{_datadir}/sfscgi/sfs.css
-%attr(755,root,root) %{_datadir}/sfscgi/sfs.cgi
-%attr(755,root,root) %{_datadir}/sfscgi/chart.cgi
+%{_datadir}/sfscgi/sfs.cgi
+%{_datadir}/sfscgi/chart.cgi
+
+# Files - CGI server
+############################################################
 
 %files cgiserv
-%defattr(644,root,root,755)
-%attr(755,root,root) %{_sbindir}/saunafs-cgiserver
+%license COPYING
+%doc NEWS README.md
+%{_sbindir}/saunafs-cgiserver
+%{_unitdir}/saunafs-cgiserv.service
 %{_mandir}/man8/saunafs-cgiserver.8*
-%attr(644,root,root) %{_unitdir}/saunafs-cgiserv.service
+
+# Files - Administration utility
+############################################################
 
 %files adm
-%defattr(644,root,root,755)
-%doc NEWS README.md UPGRADE
-%attr(755,root,root) %{_bindir}/saunafs-admin
+%license COPYING
+%doc NEWS README.md
+%{_bindir}/saunafs-admin
 %{_mandir}/man8/saunafs-admin.8*
 %{_bindir}/saunafs-probe
 %{_mandir}/man8/saunafs-probe.8*
 
+# Files - uraft
+############################################################
+
 %files uraft
-%define sau_uraft_examples %{_docdir}/saunafs-uraft/examples
-%defattr(644,root,root,755)
-%attr(755,root,root) %{_sbindir}/saunafs-uraft
-%attr(755,root,root) %{_sbindir}/saunafs-uraft-helper
-%doc NEWS README.md UPGRADE
+%license COPYING
+%doc NEWS README.md
+%{_sbindir}/saunafs-uraft
+%{_sbindir}/saunafs-uraft-helper
+%{_unitdir}/saunafs-uraft.service
+%{_unitdir}/saunafs-ha-master.service
 %{_mandir}/man8/saunafs-uraft.8*
 %{_mandir}/man8/saunafs-uraft-helper.8*
 %{_mandir}/man5/saunafs-uraft.cfg.5*
-%{sau_uraft_examples}/saunafs-uraft.cfg
-%attr(644,root,root) %{_unitdir}/saunafs-uraft.service
-%attr(644,root,root) %{_unitdir}/saunafs-ha-master.service
+%dir %{_docdir}/saunafs-uraft/examples/
+%{_docdir}/saunafs-uraft/examples/saunafs-uraft.cfg
+%config(noreplace) %{_sysconfdir}/sysctl.d/10-saunafs-uraft-arp.conf
+%config(noreplace) %{_sysconfdir}/sudoers.d/saunafs-uraft
+
+# Files - user
+############################################################
+
+%files user
+%license COPYING
+%doc NEWS README.md
+%{_sysusersdir}/saunafs.conf
 
 %changelog
+%autochangelog

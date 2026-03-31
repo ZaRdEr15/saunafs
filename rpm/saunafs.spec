@@ -43,7 +43,6 @@ BuildRequires:  fmt-devel
 BuildRequires:  fuse3-devel
 BuildRequires:  isa-l-devel
 BuildRequires:  Judy-devel
-BuildRequires:  libdb-devel
 BuildRequires:  openssl-devel
 BuildRequires:  pam-devel
 BuildRequires:  spdlog-devel
